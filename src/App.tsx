@@ -7,7 +7,8 @@ type Priority = 'Urgente' | 'Moyenne' | 'Basse';
  type todo = {
     id: number;
     text: string;
-    priority: Priority
+  priority: Priority;
+  completed: boolean;
  }
 function App() {
 
@@ -15,7 +16,12 @@ function App() {
   const [priority, setPriority] = useState <Priority>("Moyenne")
 
   const savedTodos = localStorage.getItem("todos")
-  const initialTodos = savedTodos ? JSON.parse(savedTodos) : []
+  const initialTodos: todo[] = savedTodos
+    ? JSON.parse(savedTodos).map((todo: todo) => ({
+        ...todo,
+        completed: todo.completed ?? false,
+      }))
+    : []
   const [todos, setTodos] = useState <todo[]>(initialTodos)
   const [filter, setFilter] = useState <Priority | "Tous" >("Tous")
 
@@ -30,7 +36,8 @@ function App() {
     const newTodo: todo = {
       id: Date.now(),
       text: input.trim(),
-      priority: priority
+      priority: priority,
+      completed: false,
     }
 
     const newTodos = [newTodo, ...todos]
@@ -40,13 +47,9 @@ function App() {
     console.log(newTodos)
   }
 
-  let filteredTodos : todo[] = []
-
-  if (filter === "Tous"){
-    filteredTodos = todos
-  }else{
-    filteredTodos = todos.filter((todo) => todo.priority === filter)
-  }
+  const filteredTodos: todo[] = filter === "Tous"
+    ? todos
+    : todos.filter((todo) => todo.priority === filter)
 
   const urgentCount = todos.filter((t) => t.priority === "Urgente").length
   const mediumCount = todos.filter((t) => t.priority === "Moyenne").length
@@ -57,6 +60,30 @@ function App() {
     const newTodos = todos.filter((todo) => todo.id !== id )
 
     setTodos(newTodos)
+    setSelectedTodos((selected) => {
+      const newSelected = new Set(selected)
+      newSelected.delete(id)
+      return newSelected
+    })
+  }
+
+  const [selectedTodos, setSelectedTodos] = useState<Set<number>>(new Set())
+
+  function toggleSelectedTodo(id : number){
+    const newSelected = new Set(selectedTodos)
+    if(newSelected.has(id)){
+      newSelected.delete(id)
+    }else{
+      newSelected.add(id)
+    } 
+    setSelectedTodos(newSelected)
+  }
+
+  function completeSelectedTodos(){
+    setTodos((currentTodos) => currentTodos.map((todo) =>
+      selectedTodos.has(todo.id) ? { ...todo, completed: true } : todo
+    ))
+    setSelectedTodos(new Set())
   }
 
   return (
@@ -85,39 +112,49 @@ function App() {
           </button>
         </div>
         <div className='space-y-2 flex-1 h-fit'>
-        <div className='flex flex-wrap gap-4'>
-          <button 
-          className= {`btn btn-soft ${filter === "Tous" ? "btn-primary" : "" }`}
-          onClick={() => setFilter("Tous")}
-          >
-            Tous ({totalCount})
+          <div className='flex justify-between items-center gap-4'>
+            <div className='flex flex-wrap gap-4'>
+              <button 
+              className= {`btn btn-soft ${filter === "Tous" ? "btn-primary" : "" }`}
+              onClick={() => setFilter("Tous")}
+              >
+                Tous ({totalCount})
 
-          </button>
-          
-          <button 
-          className= {`btn btn-soft ${filter === "Basse" ? "btn-primary" : "" }`}
-          onClick={() => setFilter("Basse")}
-          >
-            Basse ({lowCount})
+              </button>
+              
+              <button 
+              className= {`btn btn-soft ${filter === "Basse" ? "btn-primary" : "" }`}
+              onClick={() => setFilter("Basse")}
+              >
+                Basse ({lowCount})
 
-          </button>
+              </button>
 
-          <button 
-          className= {`btn btn-soft ${filter === "Moyenne" ? "btn-primary" : "" }`}
-          onClick={() => setFilter("Moyenne")}
-          >
-            Moyenne ({mediumCount})
+              <button 
+              className= {`btn btn-soft ${filter === "Moyenne" ? "btn-primary" : "" }`}
+              onClick={() => setFilter("Moyenne")}
+              >
+                Moyenne ({mediumCount})
 
-          </button>
+              </button>
 
-          <button 
-          className= {`btn btn-soft ${filter === "Urgente" ? "btn-primary" : "" }`}
-          onClick={() => setFilter("Urgente")}
-          >
-            Urgente ({urgentCount})
+              <button 
+              className= {`btn btn-soft ${filter === "Urgente" ? "btn-primary" : "" }`}
+              onClick={() => setFilter("Urgente")}
+              >
+                Urgente ({urgentCount})
 
-          </button>
-        </div>
+              </button>
+            </div>
+            <button
+              className="btn btn-success"
+              onClick={completeSelectedTodos}
+              disabled={selectedTodos.size === 0}
+            >
+              Tâche(s) Terminée(s)
+            </button>
+          </div>
+
         {filteredTodos.length > 0 ? 
         (
           <ul className='divide-y divide-primary/20'>
@@ -126,7 +163,9 @@ function App() {
                 <li key={todo.id} >
                   <TodoItem
                    todo={todo}
+                   isSelected = {selectedTodos.has(todo.id)}
                    onDelete={() => deletedTodo(todo.id)}
+                   onToggleSelecte={toggleSelectedTodo}
                    />
                 </li>
               ))

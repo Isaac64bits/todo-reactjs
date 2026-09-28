@@ -4,25 +4,30 @@ type Priority = 'Urgente' | 'Moyenne' | 'Basse';
  type todo = {
     id: number;
     text: string;
-    priority: Priority
+    priority: Priority;
+    completed: boolean;
  }
 
  type Props = {
     todo : todo
     onDelete: () => void
+    isSelected : boolean
+    onToggleSelecte: (id : number) => void
  }
 
-const TodoItem = ({todo, onDelete} : Props) =>{
+const TodoItem = ({todo, onDelete, isSelected, onToggleSelecte} : Props) =>{
     return (
        <li className="p-3">
         <div className="flex justify-between items-center">
             <div className="flex items-center gap-2">
                 <input type="checkbox"
                  className="checkbox checkbox-primary checkbox-sm"
-                  
+                  checked={isSelected}
+                                    disabled={todo.completed}
+                  onChange={() => onToggleSelecte(todo.id)} 
                 />
                 <span className="text-md font-bold">
-                    <span>
+                                        <span className={todo.completed ? "line-through opacity-60" : ""}>
                         {todo.text}
                     </span>
                 </span>
